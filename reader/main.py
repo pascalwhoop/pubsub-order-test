@@ -30,6 +30,10 @@ def _reset_state():
     state = State(current_stage= "start", stage_stats={})
 _reset_state()
 
+@app.route('/reset', methods=["GET"])
+def get_state():
+    _reset_state()
+    return Response(json_encoder.encode(state), status=200, mimetype="application/json")
 
 @app.route('/state', methods=["GET"])
 def get_state():
