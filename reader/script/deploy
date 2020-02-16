@@ -1,0 +1,11 @@
+#!/bin/bash
+set -xe
+
+ROOT=$(git rev-parse --show-toplevel)
+cd $ROOT/reader
+
+#deploy appengine code
+gcloud app deploy
+
+cd $ROOT
+
