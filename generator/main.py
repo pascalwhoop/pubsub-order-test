@@ -8,12 +8,11 @@ import json
 TOPIC = os.environ.get("target_topic", "queue_topic")
 PROJECT_NAME = os.environ.get("project_name", "quixotic-elf-256313")
 TOPIC_PATH = f"projects/{PROJECT_NAME}/topics/{TOPIC}"
-TRANS_DURATION = timedelta(seconds=int(os.environ.get("transmission_duration", "90")))
+TRANS_DURATION = timedelta(seconds=int(os.environ.get("transmission_duration", "500")))
 
-hour_step = datetime.now().hour % 6
 
 hour_mapping = {
-    0: 10000,
+    0: 0.5,
     1: 1,
     2: 2,
     3: 10,
@@ -22,8 +21,8 @@ hour_mapping = {
 }
 
 
-def get_nth():
-    return hour_mapping[hour_step]
+def get_nth(stage):
+    return hour_mapping[stage]
 
 
 """
@@ -44,19 +43,19 @@ def main(event, context):
 
     print("starting to send messages")
     publisher = pubsub_v1.PublisherClient()
-    return main_loop(publisher, duration=TRANS_DURATION, nth=get_nth())
+    stage = datetime.now().hour % 6
+    return main_loop(publisher, duration=TRANS_DURATION, nth=get_nth(stage), stage=stage)
 
 
-def main_loop(publisher: pubsub_v1.PublisherClient, duration, nth):
+def main_loop(publisher: pubsub_v1.PublisherClient, duration: timedelta, nth, stage):
     print(f"starting tranmission with {duration} duration per stage")
     _send(publisher, {"type": "start"})
     time.sleep(10)
 
-    stage = hour_step
 
     counter = 1
     print(f"stage {stage}, sending message every 1/{nth} second")
-    finish_time = datetime.now() + timedelta(seconds=duration)
+    finish_time = datetime.now() + duration
     while datetime.now() < finish_time:
         _send(publisher, _make_message(stage, nth, counter))
         counter += 1

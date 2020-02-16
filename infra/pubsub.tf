@@ -1,6 +1,6 @@
 
 resource "google_pubsub_topic" "default-topic" {
-    name = "queue_topic"
+  name = "queue_topic"
 }
 
 resource "google_pubsub_subscription" "default" {

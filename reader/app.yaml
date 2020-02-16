@@ -1,4 +1,12 @@
 runtime: python37
 instance_class: B4
+vpc_access_connector:
+  # https://github.com/terraform-providers/terraform-provider-google/issues/4988
+  # have to deploy through gcloud because the below key doesn't exist for terraform
+  name: "projects/quixotic-elf-256313/locations/europe-west1/connectors/appengine-connector"
 manual_scaling:
   instances: 1
+
+env_variables:
+  redis_host: 10.19.47.131
+  redis_port: '6379'

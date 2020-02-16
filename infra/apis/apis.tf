@@ -10,7 +10,9 @@ variable "apis" {
         "cloudfunctions.googleapis.com",
         "pubsub.googleapis.com",
         "appengine.googleapis.com",
-        "cloudscheduler.googleapis.com"
+        "cloudscheduler.googleapis.com",
+        "redis.googleapis.com",
+        "vpcaccess.googleapis.com"
     ]
 }
 
