@@ -31,7 +31,7 @@ def _reset_state():
 _reset_state()
 
 @app.route('/reset', methods=["GET"])
-def get_state():
+def reset():
     _reset_state()
     return Response(json_encoder.encode(state), status=200, mimetype="application/json")
 
