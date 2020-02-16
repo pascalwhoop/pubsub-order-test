@@ -5,8 +5,8 @@ from unittest.mock import MagicMock
 from unittest.mock import patch
 from os import environ
 
-class TestMain(unittest.TestCase):
 
+class TestMain(unittest.TestCase):
     def test_main_loop(self):
         mock_callable = MagicMock()
 

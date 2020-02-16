@@ -1,6 +1,6 @@
 from flask import escape
 from google.cloud import pubsub_v1
-import os 
+import os
 import time
 from datetime import datetime, timedelta
 import json
@@ -21,14 +21,16 @@ hour_mapping = {
     5: 100,
 }
 
+
 def get_nth():
     return hour_mapping[hour_step]
-
 
 
 """
 trigger function. gets called and then generates a stream of messages in a sequential fashion
 """
+
+
 def main(event, context):
     """Background Cloud Function to be triggered by Pub/Sub.
     Args:
@@ -43,7 +45,8 @@ def main(event, context):
     print("starting to send messages")
     publisher = pubsub_v1.PublisherClient()
     return main_loop(publisher, duration=TRANS_DURATION, nth=get_nth())
-    
+
+
 def main_loop(publisher: pubsub_v1.PublisherClient, duration, nth):
     print(f"starting tranmission with {duration} duration per stage")
     _send(publisher, {"type": "start"})
@@ -54,23 +57,26 @@ def main_loop(publisher: pubsub_v1.PublisherClient, duration, nth):
     counter = 1
     print(f"stage {stage}, sending message every 1/{nth} second")
     finish_time = datetime.now() + timedelta(seconds=duration)
-    while(datetime.now() < finish_time):
+    while datetime.now() < finish_time:
         _send(publisher, _make_message(stage, nth, counter))
         counter += 1
-        time.sleep(1/nth)
-    
-    #_send(publisher, {"type": "end"})
+        time.sleep(1 / nth)
+
+    # _send(publisher, {"type": "end"})
+
 
 # helper functions
 # ----------------
 
+
 def _send(p: pubsub_v1.PublisherClient, m) -> None:
     p.publish(TOPIC_PATH, str.encode(json.dumps(m)))
+
 
 def _make_message(stage, sleep_length, counter) -> dict:
     return {
         "type": "step",
         "stage": stage,
         "sleep_length": sleep_length,
-        "counter": counter
+        "counter": counter,
     }
