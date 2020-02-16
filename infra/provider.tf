@@ -8,3 +8,8 @@ provider "google" {
 locals {
   project     = "quixotic-elf-256313"
 }
+
+module "apis" {
+    source  = "./apis"
+    project_id = local.project
+}

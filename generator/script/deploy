@@ -1,0 +1,13 @@
+#!/bin/bash
+set -xe
+
+ROOT=$(git rev-parse --show-toplevel)
+cd $ROOT/generator
+
+#deploy function
+gcloud functions deploy generator \
+      --runtime python37 \
+      --timeout 540 \
+      --region=europe-west1 \
+      --trigger-topic function_trigger_topic \
+      --entry-point main --verbosity=debug

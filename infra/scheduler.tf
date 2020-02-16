@@ -8,4 +8,6 @@ resource "google_cloud_scheduler_job" "job" {
     topic_name = google_pubsub_topic.function_trigger_topic.id
     data       = base64encode("GO!")
   }
+
+  depends_on = [google_app_engine_application.reader]
 }
