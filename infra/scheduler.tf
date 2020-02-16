@@ -1,7 +1,7 @@
 resource "google_cloud_scheduler_job" "job" {
   name        = "test-trigger-job"
   description = "trigger job"
-  schedule    = "0 */6 * * *"
+  schedule    = "0 */1 * * *"
 
   pubsub_target {
     # topic.id is the topic's full resource name.

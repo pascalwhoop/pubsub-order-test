@@ -12,6 +12,7 @@ class TestMain(unittest.TestCase):
 
         main.main_loop(mock_callable, duration=1, nth=100)
         assert mock_callable.publish.call_count > 1
+        assert mock_callable.publish.call_count < 100 #cannot send more than 100 messages if we sleep 1/100th
 
     def test_make_message(self):
         obj = main._make_message(1, 2, 3)
