@@ -56,7 +56,8 @@ class TestMain(unittest.TestCase):
         print(st)
         assert int(st[f"{main._id_key(0)}.ooo"])   == 5
         assert int(st[f"{main._id_key(0)}.last"])  == 8
-        assert int(st[f"{main._id_key(0)}.ooi"])   == 4
+        # if it's O, it cannot be I anymore because O is worse than I
+        #assert int(st[f"{main._id_key(0)}.ooi"])   == 4
         assert int(st[f"{main._id_key(0)}.total"]) == 9
         #assert main.state.stage_stats.get(STAGE) is None
         #main._validate_ready(STAGE)

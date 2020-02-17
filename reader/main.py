@@ -13,7 +13,7 @@ import redis
 REDIS_HOST = environ.get("redis_host", "localhost")
 REDIS_PORT = environ.get("redis_port", "6379")
 r = redis.Redis(host=REDIS_HOST, port=int(REDIS_PORT), db=0, decode_responses=True, encoding="utf-8")
-DATE_FORMAT = "%Y%m%d"
+DATE_FORMAT = "%Y%m%d-%H"
 
 
 # If `entrypoint` is not defined in app.yaml, App Engine will look for an app
@@ -90,18 +90,23 @@ def _handle_step(msg):
 
     if  db_last +1 == msg_counter and db_total == msg_counter:
         _log_hist(id)
+        return
 
-    # not same number as what we received so far
-    if msg_counter != db_total:
-        r.incr(ooi_key.format(id))
-        log.warning(f"OOIC ++ : msg counter: {msg_counter}, system counter: {db_total}")
-        #stats.events.append("I")
 
     # previous message was not -1 of current
     if db_last +1 != msg_counter:
         r.incr(ooo_key.format(id))
         log.warning(f"OOOC ++ : last received: {db_last}, msg counter: {msg_counter}")
         _log_hist(id, "O")
+        return
+
+    # not same number as what we received so far
+    if msg_counter != db_total:
+        r.incr(ooi_key.format(id))
+        log.warning(f"OOIC ++ : msg counter: {msg_counter}, system counter: {db_total}")
+        #stats.events.append("I")
+        _log_hist(id, "I")
+        return
     
     
 def _log_hist(id, ev="."):
