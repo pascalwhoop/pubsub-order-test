@@ -32,6 +32,7 @@ class TestMain(unittest.TestCase):
     def setUp(self):
         main.r.flushdb()
 
+
     def test_redis(self):
         assert main.r.get("test") is None
         main.r.set("test", "foo")
@@ -42,7 +43,7 @@ class TestMain(unittest.TestCase):
         assert isinstance(res, Response)
         res_json = res.get_json()
         assert len(res_json.values()) == 0
-        main.r.set("2020xx", "foo")
+        main.r.set("2020.xx", "foo")
         assert len(main.get_state().get_json().values()) == 1
 
     def test_id_key(self):
@@ -53,7 +54,6 @@ class TestMain(unittest.TestCase):
         for i in [1,2,4,3,5,6,7,9,8]:
             main._handle_step(_step_message(i))
         st = _state_from_redis()
-        print(st)
         assert int(st[f"{main._id_key(0)}.ooo"])   == 5
         assert int(st[f"{main._id_key(0)}.last"])  == 8
         # if it's O, it cannot be I anymore because O is worse than I
@@ -102,6 +102,25 @@ class TestMain(unittest.TestCase):
         print(inside_message)
         assert isinstance(inside_message, dict)
         assert "==" not in inside_message
+
+    def test_set_max(self):
+        m = main._set_max(1, 1)
+        assert m == 1
+        m = main._set_max(2, 1)
+        assert m == 2
+        m= main._set_max(1, 1)
+        assert m == 2
+        m = main._set_max(20, 1)
+        assert m == 20
+        m = main._set_max(5, 1)
+        assert m == 20
+
+    def test_log_offs(self):
+        main._log_offs(id=2, max=1, msg_counter=1)
+        assert main.r.rpop("L-2.offs") == "0"
+        main._log_offs(id=2, max=3, msg_counter=1)
+        assert main.r.rpop("L-2.offs") == "2"
+
 
 
     def test_handle_whole_flow(self):

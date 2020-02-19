@@ -1,2 +1,4 @@
 artifacts/
 .vscode/
+results/experiments.json
+results/.ipynb_checkpoints/

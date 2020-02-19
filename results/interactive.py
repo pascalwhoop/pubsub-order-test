@@ -96,49 +96,61 @@ counter_sums_df.plot.bar(x="message_interval_in_sec", y=["ooo_percentage", "ooi_
 
 # %%
 
-def list_to_counted_offsets(key, list) -> pd.DataFrame():
-        total = len(list)
-        return (
-            pd.DataFrame(list, columns=["off_count"])["off_count"]
-            .value_counts()
-            .to_frame()
-            .assign(offset = lambda df: df.index)
-            .assign(total_count=total)
-            .assign(dataset=key)
-        )
+def list_to_counted_offsets(name, list) -> pd.DataFrame():
+    """
+    converts a raw list of offsets 
+    """
+    return (pd.Series(list, name="abs")
+        .value_counts()
+        .to_frame()
+        .assign(total=len(list))
+        .assign(perc=lambda df: df["abs"]/df["total"])
+        .drop(["abs", "total"], axis=1)
+        .rename(columns={"perc": name})
+    )
 
 
-def lists_to_df(data, list_name) -> pd.DataFrame:
-    just_lists = {k.split(".")[0]: data[k] for k in data if list_name in k}
-    dataframes = [list_to_counted_offsets(k, just_lists[k]) for k in just_lists]
-    return dataframes
+#build a 
+just_lists = {k.split(".")[0]: data[k] for k in data if "offs" in k}
+counts_dfs = [list_to_counted_offsets(k, just_lists[k]) for k in just_lists]
+
+counts_dfs[23]
+
+# %%
+# now we have the percentage of each offset "magnitude" for each experiment. 
+# pandas allows joins on indexes (it's the default actually)
+# so all I need to do is to use a reduce function to outer join all df's together on the indexes
+from functools import reduce
+distributions_df = reduce(lambda a, b: a.join(b, how="outer"), counts_dfs).fillna(0)
+distributions_df
 
 
-    # return pd.DataFrame.from_dict(, columns=[list_name], orient="index")
+# %%
+print("log axis on y")
+for i in range(6):
+    distributions_df.filter(regex=f":{i}").plot(logy=True, figsize=[12,12])
 
+print("loglog axes, showing exponential values better")
+for i in range(6):
+    distributions_df.filter(regex=f":{i}").plot(loglog=True, figsize=[12,12])
 
-offset_count_dfs = pd.concat(lists_to_df(data, "offs"))
+# %% [markdown]
+# The graphs shows how the data follows a long tail distribution when looking 
+# at the highest rate of TX cases.
+
 
 # %%
 
-datasets = pd.unique(offset_count_dfs["dataset"])
-datasets
-
-ax = None
-for d in datasets[0:8]:
-    if ax is None:
-        ax = (offset_count_dfs
-        .loc[offset_count_dfs["dataset"] == d]
-        .plot
-        .scatter(x='offset', y='off_count', colormap='Paired', label=d, loglog=True)
-        )
-    else:
-        (offset_count_dfs
-        .loc[offset_count_dfs["dataset"] == d]
-        .plot
-        .scatter(x='offset', y='off_count', label=d, ax=ax)
-        )
+df = distributions_df.filter(regex=f":5").loc[range(20)]
+df.plot.bar(figsize=[12,12], logy=True)
+#ax = None
+#for col in df.columns:
+#    if ax is None:
+#        ax = df.plot.scatter(x=col, y="index")
+#    else:
+#        df.plot.scatter(x=col, y="index", ax=ax)
 
 
-#
-#df.plot.scatter(x='c', y='d', color='DarkGreen', label='Group 2', ax=ax);
+# %%
+df2 = distributions_df.filter(regex=f":2").loc[range(20)]
+df2.plot.bar(figsize=[12,12], logy=True)

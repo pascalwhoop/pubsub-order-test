@@ -25,14 +25,23 @@ ooi_key   = "{}.ooi"
 total_key = "{}.total"
 last_key  = "{}.last"
 hist_key  = "{}.hist"
+offs_key = "L-{}.offs"
+max_key  = "{}.max"
 
 @app.route('/state', methods=["GET"])
 def get_state():
+    #first grab string keys
     keys = r.keys("2020*")
     data  = {key:r.get(key) for key in keys}
 
-    
-    return Response(json.dumps(data), mimetype="application/json")
+    #handle lists separate because of a different accessor
+    list_keys = r.keys("L-2020*")
+    #grab
+    lists  = {key:r.lrange(key, 0, -1) for key in list_keys}
+    #convert str -> int
+    lists  = {key: list(map(int, l)) for (key, l) in lists.items()}
+
+    return Response(json.dumps({**data, **lists}), mimetype="application/json")
 
 @app.route('/reset', methods=["POST"])
 def reset():
@@ -63,6 +72,7 @@ def _id_key(stage) -> str:
     # this assumes that each stage gets run at most 1x per hour. See `scheduler.tf` for details
     return f"{datetime.now().strftime(DATE_FORMAT)}:{stage}"
 
+
 def _handle_step(msg):
     """
     actually receives the message, not the container. Increments everything
@@ -78,44 +88,54 @@ def _handle_step(msg):
     """
     msg_counter = msg["counter"]
     id = _id_key(msg["stage"])
-    #increment by one
-    db_total = r.incr  (total_key.format(id))
+
+    #set new state values
+    max = _set_max(msg_counter, id)
+    db_total = r.incr(total_key.format(id))
     db_last  = r.getset(last_key.format(id), msg_counter)
+    db_last = 0 if db_last is None else int(db_last)
 
-    if db_last is None:
-        #first message -> skip
-        _log_hist(id)
-        return
-    db_last = int(db_last)
-
-    if  db_last +1 == msg_counter and db_total == msg_counter:
-        _log_hist(id)
-        return
+    # log simple hist view
+    _log_hist(id, db_total, db_last, msg_counter)
+    _log_offs(id, max, msg_counter)
 
 
-    # previous message was not -1 of current
-    if db_last +1 != msg_counter:
-        r.incr(ooo_key.format(id))
-        log.warning(f"OOOC ++ : last received: {db_last}, msg counter: {msg_counter}")
-        _log_hist(id, "O")
-        return
+def _set_max(msg_counter, id) -> None:
+    # sets the counter to the new value optimistically
+    # if it was wrong, it corrects (which happens less often on avergae in a monotonically increasing sequence)
+    key = max_key.format(id)
+    prev = r.getset(key, msg_counter)
+    prev = 0 if prev is None else int(prev)
+    if prev>msg_counter:
+        r.set(key, prev)
+        return prev
+    else:
+        return msg_counter
 
-    # not same number as what we received so far
-    if msg_counter != db_total:
-        r.incr(ooi_key.format(id))
-        log.warning(f"OOIC ++ : msg counter: {msg_counter}, system counter: {db_total}")
-        #stats.events.append("I")
-        _log_hist(id, "I")
-        return
     
-    
-def _log_hist(id, ev="."):
+def _log_hist(id, db_total, db_last, msg_counter):
     """
     log an event to the history key in redis.
     . == as expected
     O == out of order
     """
-    r.append(hist_key.format(id), ev)
+    hist = "."
+    # previous message was not -1 of current
+    if db_last +1 != msg_counter:
+        hist = "O"
+        r.incr(ooo_key.format(id))
+    # not same number as what we received so far
+    elif msg_counter != db_total:
+        hist = "I"
+        r.incr(ooi_key.format(id))
+
+    r.append(hist_key.format(id), hist)
+
+
+def _log_offs(id, max, msg_counter):
+    # logs how much "late" the msg is. If in right index == 0
+    key = offs_key.format(id)
+    r.rpush(key, str(max-msg_counter))
 
 
 def _handle_message_json(msg_json) -> dict:
